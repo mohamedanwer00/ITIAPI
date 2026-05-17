@@ -37,36 +37,109 @@ namespace ITIAPI.Controllers
             }
             return Ok(DepDto);
         }
+        #region no Dto 
+        //[HttpPost]
+        //public IActionResult PostAllDepartment(Department department)
+        //{
+        //    if (!ModelState.IsValid)
+        //    {
+        //        return BadRequest(ModelState);
+        //    }
+        //    _context.Departments.Add(department);
+        //    _context.SaveChanges();
+        //    return Ok("Department added successfully");
+        //}
+
+        //[HttpPut("{id}")]
+        //public IActionResult PutDepartment(int id, Department department)
+        //{
+        //    if (ModelState.IsValid == true)
+        //    {
+        //        Department? OldDept = _context.Departments.FirstOrDefault(d => d.Id == id);
+        //        if (OldDept != null)
+        //        {
+        //            OldDept.Name = department.Name;
+        //            OldDept.Manager = department.Manager;
+        //            _context.SaveChanges();
+        //            return StatusCode(204, OldDept);
+        //        }
+        //        return BadRequest("Id Not Valid");
+
+        //    }
+        //    return BadRequest(ModelState);
+        //}
+        #endregion
+
         [HttpPost]
-        public IActionResult PostAllDepartment(Department department)
+        public IActionResult PostAllDepartment(DepartmentDetailsWithEmployeeName dto)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
+
+            var manager = _context.Employees
+                .FirstOrDefault(e => e.Name == dto.ManagerName);
+
+            if (manager == null)
+                return BadRequest("Manager Not Found");
+
+            Department department = new Department()
+            {
+                Name = dto.Name,
+                Manager = manager.Name
+            };
+
             _context.Departments.Add(department);
             _context.SaveChanges();
-            return Ok("Department added successfully");
+
+            return Ok(dto);
         }
+
+
+
+
+
 
         [HttpPut("{id}")]
-        public IActionResult PutDepartment(int id, Department department)
+        public IActionResult PutDepartment(int id, DepartmentDetailsWithEmployeeName dto)
         {
-            if (ModelState.IsValid == true)
-            {
-                Department? OldDept = _context.Departments.FirstOrDefault(d => d.Id == id);
-                if (OldDept != null)
-                {
-                    OldDept.Name = department.Name;
-                    OldDept.Manager = department.Manager;
-                    _context.SaveChanges();
-                    return StatusCode(204, OldDept);
-                }
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            Department? oldDept = _context.Departments
+                .Include(d => d.Employee)
+                .FirstOrDefault(d => d.Id == id);
+
+            if (oldDept == null)
                 return BadRequest("Id Not Valid");
 
-            }
-            return BadRequest(ModelState);
+            var manager = _context.Employees
+                .FirstOrDefault(e => e.Name == dto.ManagerName);
+
+            if (manager == null)
+                return BadRequest("Manager Not Found");
+
+            oldDept.Name = dto.Name;
+            oldDept.Manager = manager.Name;
+
+            _context.SaveChanges();
+
+            return Ok(new DepartmentDetailsWithEmployeeName
+            {
+                Id = oldDept.Id,
+                Name = oldDept.Name,
+                ManagerName = oldDept.Manager,
+                EmployeesName = oldDept.Employee
+                    .Select(e => e.Name)
+                    .ToList()
+            });
         }
+
+
+
+
+
+
+
         [HttpDelete("{id}")]
         public IActionResult DeleteDepartment(int id)
         {

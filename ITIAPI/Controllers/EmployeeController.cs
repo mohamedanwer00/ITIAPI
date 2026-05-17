@@ -52,36 +52,86 @@ public class EmployeeController : ControllerBase
     }
 
     // POST: api/Employee
+    //[HttpPost]
+    //public async Task<IActionResult> Insert(Employee employee)
+    //{
+    //    if (!ModelState.IsValid)
+    //        return BadRequest(ModelState);
+
+    //    _context.Employees.Add(employee);
+    //    await _context.SaveChangesAsync();
+
+    //    return Ok(employee);
+    //}
     [HttpPost]
-    public async Task<IActionResult> Insert(Employee employee)
+    public async Task<IActionResult> Insert(EmployeeDataWithDepartmentNameDTO dto)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
+        var department = await _context.Departments
+            .FirstOrDefaultAsync(d => d.Name == dto.DepartmentName);
+
+        if (department == null)
+            return BadRequest("Department Not Found");
+
+        Employee employee = new Employee()
+        {
+            Name = dto.Name,
+            Address = dto.Address,
+            Phone = dto.Phone,
+            Salary=dto.Salary,
+            DeptID = department.Id
+        };
+
         _context.Employees.Add(employee);
+
         await _context.SaveChangesAsync();
 
-        return Ok(employee);
+        return Ok(new EmployeeDataWithDepartmentNameDTO
+        {
+            Id = employee.Id,
+            Name = employee.Name,
+            Address = employee.Address,
+            Phone = employee.Phone,
+            DepartmentName = department.Name
+        });
     }
-
     // PUT: api/Employee/5
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, Employee updatedEmployee)
+    public async Task<IActionResult> Update(int id, EmployeeDataWithDepartmentNameDTO dto)
     {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
         var employee = await _context.Employees.FindAsync(id);
 
         if (employee == null)
             return NotFound();
 
-        employee.Name = updatedEmployee.Name;
-        employee.Salary = updatedEmployee.Salary;
-        employee.Address = updatedEmployee.Address;
-        employee.Phone = updatedEmployee.Phone;
-        employee.DeptID = updatedEmployee.DeptID;
+        var department = await _context.Departments
+            .FirstOrDefaultAsync(d => d.Name == dto.DepartmentName);
+
+        if (department == null)
+            return BadRequest("Department Not Found");
+
+        employee.Name = dto.Name;
+        employee.Address = dto.Address;
+        employee.Phone = dto.Phone;
+        employee.Salary = dto.Salary;
+        employee.DeptID = department.Id;
 
         await _context.SaveChangesAsync();
 
-        return Ok(employee);
+        return Ok(new EmployeeDataWithDepartmentNameDTO
+        {
+            Id = employee.Id,
+            Name = employee.Name,
+            Address = employee.Address,
+            Phone = employee.Phone,
+            Salary = employee.Salary,
+            DepartmentName = department.Name
+        });
     }
 
     // DELETE: api/Employee/5
